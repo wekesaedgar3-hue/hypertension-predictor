@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Doctor — Patient Monitor</title>
+  <style>
+    :root{
+      --bg:#f5f7fb; --card:#fff; --muted:#6b7280; --accent:#2563eb;
+      --danger:#dc2626; --warn:#f59e0b; --success:#16a34a; --radius:12px;
+      font-family: Inter, "Segoe UI", Roboto, system-ui, -apple-system, sans-serif;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:#0f172a}
+    header{background:var(--accent);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between}
+    header h1{margin:0;font-size:1.1rem}
+    header .actions{display:flex;gap:8px}
+    .container{max-width:1200px;margin:18px auto;padding:18px}
+    .grid{display:grid;grid-template-columns:360px 1fr;gap:18px}
+    .card{background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:0 6px 18px rgba(2,6,23,0.06)}
+    .patient-header{display:flex;gap:12px;align-items:center}
+    .avatar{width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,#e2e8f0,#fff);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent)}
+    .muted{color:var(--muted);font-size:0.95rem}
+    .row{display:flex;gap:8px;align-items:center}
+    .stat{padding:10px;border-radius:10px;background:#fbfdff;border:1px solid #f1f5f9;flex:1;text-align:center}
+    .stat h3{margin:0;font-size:1.1rem}
+    .stat p{margin:6px 0 0 0;color:var(--muted);font-size:0.9rem}
+    .btn{border:none;padding:8px 12px;border-radius:8px;cursor:pointer;color:#fff}
+    .btn-primary{background:var(--accent)}
+    .btn-ghost{background:transparent;color:var(--accent);border:1px solid rgba(37,99,235,0.12)}
+    .btn-danger{background:var(--danger)}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    table{width:100%;border-collapse:collapse;margin-top:12px;font-size:0.95rem}
+    th,td{padding:8px;border-bottom:1px solid #f1f5f9;text-align:center}
+    th{background:#f8fafc;color:var(--muted);font-weight:700}
+    #sparkline{height:120px}
+    .alert{padding:10px;border-radius:8px;margin-bottom:8px}
+    .alert-high{background:#fff1f2;border-left:6px solid var(--danger)}
+    .alert-med{background:#fffbeb;border-left:6px solid var(--warn)}
+    .alert-low{background:#ecfdf5;border-left:6px solid var(--success)}
+    #chatbotBtn{position:fixed;right:18px;bottom:18px;background:var(--accent);color:#fff;border-radius:50%;width:56px;height:56px;border:none;font-size:22px;box-shadow:0 6px 18px rgba(2,6,23,0.12);cursor:pointer}
+    #chatWindow{position:fixed;right:18px;bottom:90px;width:340px;height:420px;background:var(--card);border-radius:12px;box-shadow:0 18px 40px rgba(2,6,23,0.12);display:none;flex-direction:column;overflow:hidden}
+    #chatHead{background:var(--accent);color:#fff;padding:12px;font-weight:700}
+    #chatMessages{flex:1;padding:10px;overflow:auto;background:#f8fafc}
+    .chat-msg{padding:8px;border-radius:10px;margin-bottom:8px;max-width:80%}
+    .chat-user{background:var(--accent);color:#fff;align-self:flex-end}
+    .chat-bot{background:#eef2ff;color:#111;align-self:flex-start}
+    #chatInput{display:flex;border-top:1px solid #eee}
+    #chatInput input{flex:1;padding:10px;border:none;outline:none}
+    #chatInput button{padding:8px 12px;border:none;background:var(--accent);color:#fff;cursor:pointer}
+    @media(max-width:900px){.grid{grid-template-columns:1fr;}.container{padding:10px}}
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Doctor • Patient Monitor</h1>
+  <div class="actions">
+    <button class="btn btn-ghost" onclick="goBack()">← Back to Patients</button>
+    <button class="btn btn-danger" onclick="logout()">Logout</button>
+  </div>
+</header>
+
+<div class="container">
+  <div id="infoArea" class="card patient-header">
+    <div style="flex:1">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div id="avatar" class="avatar">P</div>
+          <div>
+            <div id="patientName" style="font-size:1.1rem;font-weight:700">Patient name</div>
+            <div id="patientEmail" class="muted">email@example.com</div>
+            <div id="patientMeta" class="muted" style="margin-top:6px">Age · Gender</div>
+          </div>
+        </div>
+
+        <div style="text-align:right">
+          <div class="muted">Latest risk</div>
+          <div id="patientRisk" style="font-weight:800;font-size:1rem;margin-top:6px">--</div>
+        </div>
+      </div>
+
+      <div class="controls" style="margin-top:12px">
+        <button class="btn btn-primary" onclick="fetchAllData()">Refresh</button>
+        <button class="btn btn-ghost" onclick="exportJSON()">Export JSON</button>
+        <button class="btn btn-ghost" onclick="exportCSV()">Export CSV</button>
+        <button class="btn btn-ghost" onclick="importSample()">Load Sample</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid" style="margin-top:18px">
+    <div>
+      <div id="latestCard" class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="muted">Latest reading</div>
+            <div style="font-size:1.6rem;font-weight:800;margin-top:6px" id="latestBP">-- / --</div>
+            <div class="muted" id="latestTS">--</div>
+          </div>
+          <div style="min-width:120px">
+            <div class="stat">
+              <h3 id="statSBP">--</h3><p>Systolic</p>
+            </div>
+            <div style="height:8px"></div>
+            <div class="stat">
+              <h3 id="statDBP">--</h3><p>Diastolic</p>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px">
+          <div class="muted">Add manual reading (doctor)</div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <input id="manualSBP" type="number" placeholder="SBP" style="flex:1;padding:8px;border-radius:8px;border:1px solid #e6eef9" />
+            <input id="manualDBP" type="number" placeholder="DBP" style="flex:1;padding:8px;border-radius:8px;border:1px solid #e6eef9" />
+            <input id="manualHR" type="number" placeholder="HR" style="width:80px;padding:8px;border-radius:8px;border:1px solid #e6eef9" />
+          </div>
+          <div style="margin-top:8px;display:flex;gap:8px">
+            <button class="btn btn-primary" onclick="addManualReading()">Add</button>
+            <button class="btn btn-ghost" onclick="fillFromLatest()">Use latest</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="alertsCard" class="card" style="margin-top:12px">
+        <h3 style="margin-top:0">Alerts</h3>
+        <div id="alertsList">No alerts yet — readings normal.</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h3 style="margin:0">Trends (last 10 readings)</h3>
+          <div class="muted">SBP / DBP / HR</div>
+        </div>
+
+        <div id="sparkline" style="margin-top:12px"></div>
+
+        <div style="display:flex;gap:12px;margin-top:12px">
+          <div style="flex:1">
+            <div class="muted">Avg (last 10)</div>
+            <div id="avgText" style="font-weight:700;margin-top:6px">--</div>
+          </div>
+          <div style="flex:1">
+            <div class="muted">Std Dev (SBP)</div>
+            <div id="stdText" style="font-weight:700;margin-top:6px">--</div>
+          </div>
+          <div style="flex:1">
+            <div class="muted">Predicted risk</div>
+            <div id="riskText" style="font-weight:700;margin-top:6px">--</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <h3 style="margin:0">History</h3>
+        <table id="historyTable">
+          <thead>
+            <tr><th>#</th><th>Timestamp</th><th>SBP</th><th>DBP</th><th>HR</th><th>Note</th></tr>
+          </thead>
+          <tbody id="historyBody">
+            <tr><td colspan="6" class="muted">No readings yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button id="chatbotBtn" title="Ask AI">💬</button>
+<div id="chatWindow">
+  <div id="chatHead">Hypertension Assistant</div>
+  <div id="chatMessages"></div>
+  <div id="chatInput">
+    <input id="chatInputField" placeholder="Ask about this patient..." />
+    <button id="chatSend">Send</button>
+  </div>
+</div>
+
+<script>
+const NODE_API_BASE = "http://localhost:5000"; 
+const token = localStorage.getItem("doctorToken");
+const patientId = localStorage.getItem("selectedPatientId");
+
+let patient = null;
+let readings = []; 
+
+function nowISO(){ return new Date().toISOString(); }
+function formatTS(ts){ try { return new Date(ts).toLocaleString(); } catch(e){ return ts; } }
+function mean(arr){ return arr.length? arr.reduce((a,b)=>a+b,0)/arr.length : 0; }
+function stddev(arr){ if (!arr.length) return 0; const m = mean(arr); return Math.sqrt(arr.reduce((s,x)=>s+(x-m)**2,0)/arr.length); }
+function goBack(){ window.location.href = "doctor_dashboard.html"; }
+function logout(){ localStorage.removeItem("doctorToken"); localStorage.removeItem("selectedPatientId"); window.location.href = "doctor_login.html"; }
+
+// ------------------ RISK & ALERTS ------------------
+function calculateRisk(sbp, dbp, hr){
+  if(!sbp || !dbp) return {risk:'--', level:'low'};
+  let riskVal = sbp*0.6 + dbp*0.4; // simple weighted risk formula
+  if(riskVal>180) return {risk:'High', level:'high'};
+  if(riskVal>140) return {risk:'Medium', level:'med'};
+  return {risk:'Low', level:'low'};
+}
+
+function updateAlerts(){
+  const latest = readings[0];
+  if(!latest){ document.getElementById("alertsList").innerText = "No alerts yet — readings normal."; return; }
+  const sbp = latest.systolic ?? latest.sbp ?? latest.s;
+  const dbp = latest.diastolic ?? latest.dbp ?? latest.d;
+  const hr  = latest.hr ?? latest.heartRate ?? latest.heart_rate ?? 0;
+
+  let alerts = [];
+  if(sbp>=180 || dbp>=120) alerts.push(`<div class="alert alert-high">Critical BP: ${sbp}/${dbp}</div>`);
+  else if(sbp>=140 || dbp>=90) alerts.push(`<div class="alert alert-med">Elevated BP: ${sbp}/${dbp}</div>`);
+  else alerts.push(`<div class="alert alert-low">BP Normal: ${sbp}/${dbp}</div>`);
+
+  if(hr>100) alerts.push(`<div class="alert alert-med">High HR: ${hr}</div>`);
+  document.getElementById("alertsList").innerHTML = alerts.join("");
+}
+
+function fetchRiskPrediction(){
+  const latest = readings[0];
+  if(!latest) return;
+  const sbp = latest.systolic ?? latest.sbp ?? latest.s;
+  const dbp = latest.diastolic ?? latest.dbp ?? latest.d;
+  const hr  = latest.hr ?? latest.heartRate ?? latest.heart_rate ?? 0;
+
+  const risk = calculateRisk(sbp, dbp, hr);
+  document.getElementById("patientRisk").innerText = risk.risk;
+  document.getElementById("riskText").innerText = risk.risk;
+  updateAlerts();
+}
+
+// ------------------ FETCH DATA ------------------
+async function fetchAllData(){
+  try {
+    const res = await fetch(`${NODE_API_BASE}/api/patients/${patientId}`, { headers: token?{Authorization:`Bearer ${token}`}:{}}); 
+    patient = res.ok ? await res.json() : { id: patientId, full_name:"Patient "+patientId, email:"", age:"", sex:"" };
+
+    const rres = await fetch(`${NODE_API_BASE}/api/readings/patient/${patientId}`, { headers: token?{Authorization:`Bearer ${token}`}:{}}); 
+    readings = rres.ok ? await rres.json() : [];
+    readings.sort((a,b)=>new Date(b.createdAt||b.ts)-new Date(a.createdAt||a.ts));
+
+    renderAll();
+    fetchRiskPrediction();
+  } catch(e){ console.error(e); alert("Failed to fetch data"); }
+}
+
+// ------------------ RENDER ------------------
+function renderAll(){
+  document.getElementById("patientName").innerText = patient.full_name || `Patient ${patient.id}`;
+  document.getElementById("patientEmail").innerText = patient.email || "";
+  document.getElementById("patientMeta").innerText = `${patient.age||"--"} yrs · ${patient.sex||"Unknown"}`;
+  document.getElementById("avatar").innerText = (patient.full_name||"P").split(" ").map(s=>s[0]).slice(0,2).join("").toUpperCase();
+
+  const latest = readings[0];
+  if(latest){
+    const sbp = latest.systolic ?? latest.sbp ?? latest.s;
+    const dbp = latest.diastolic ?? latest.dbp ?? latest.d;
+    const hr  = latest.hr ?? latest.heartRate ?? latest.heart_rate ?? "";
+    document.getElementById("latestBP").innerText = `${sbp} / ${dbp}`;
+    document.getElementById("latestTS").innerText = formatTS(latest.createdAt||latest.ts||nowISO());
+    document.getElementById("statSBP").innerText = sbp;
+    document.getElementById("statDBP").innerText = dbp;
+  } else {
+    document.getElementById("latestBP").innerText = "-- / --";
+    document.getElementById("latestTS").innerText = "--";
+    document.getElementById("statSBP").innerText = "--";
+    document.getElementById("statDBP").innerText = "--";
+  }
+
+  const tbody = document.getElementById("historyBody");
+  tbody.innerHTML = "";
+  if(!readings.length){ tbody.innerHTML = `<tr><td colspan="6" class="muted">No readings yet.</td></tr>`; }
+  else readings.forEach((r,i)=>tbody.innerHTML+=`<tr><td>${i+1}</td><td>${formatTS(r.createdAt||r.ts)}</td><td>${r.systolic??r.sbp??r.s}</td><td>${r.diastolic??r.dbp??r.d}</td><td>${r.hr??r.heartRate??r.heart_rate??""}</td><td>${r.note||""}</td></tr>`);
+}
+
+// ------------------ FILL MANUAL FROM LATEST ------------------
+function fillFromLatest(){
+  const latest = readings[0];
+  if(!latest) return;
+  document.getElementById("manualSBP").value = latest.systolic ?? latest.sbp ?? latest.s;
+  document.getElementById("manualDBP").value = latest.diastolic ?? latest.dbp ?? latest.d;
+  document.getElementById("manualHR").value = latest.hr ?? latest.heartRate ?? latest.heart_rate ?? "";
+  fetchRiskPrediction(); // Update risk immediately
+}
+
+// ------------------ ADD MANUAL READING ------------------
+function addManualReading(){
+  const sbp = parseInt(document.getElementById("manualSBP").value);
+  const dbp = parseInt(document.getElementById("manualDBP").value);
+  const hr  = parseInt(document.getElementById("manualHR").value);
+  if(!sbp || !dbp){ alert("Enter SBP and DBP"); return; }
+  readings.unshift({systolic:sbp, diastolic:dbp, hr:hr||0, createdAt:nowISO()});
+  renderAll();
+  fetchRiskPrediction();
+}
+
+// ------------------ INIT ------------------
+fetchAllData();
+</script>
+</body>
+</html>

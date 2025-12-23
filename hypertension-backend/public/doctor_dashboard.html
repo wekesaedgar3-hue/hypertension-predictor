@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Doctor Dashboard | Hypertension Monitor</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f6f9;
+    }
+
+    .navbar {
+      background: #2b58ad;
+      padding: 15px;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .navbar h2 {
+      margin: 0;
+    }
+
+    .container {
+      padding: 20px;
+    }
+
+    .search-box input {
+      width: 70%;
+      padding: 12px;
+      margin: 10px 0;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    .search-box button {
+      padding: 12px 20px;
+      margin-left: 10px;
+      font-size: 16px;
+      background: #2b58ad;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .search-box button:hover {
+      background: #244b8c;
+    }
+
+    .patient-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 15px;
+    }
+
+    .patient-card {
+      background: white;
+      border-radius: 10px;
+      padding: 15px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .patient-card:hover {
+      transform: scale(1.02);
+    }
+
+    .patient-name {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .bp-info {
+      margin-top: 8px;
+      font-size: 15px;
+    }
+
+    .status {
+      margin-top: 8px;
+      padding: 5px 10px;
+      border-radius: 5px;
+      display: inline-block;
+      color: white;
+      font-size: 13px;
+    }
+
+    .green { background: #27ae60; }
+    .yellow { background: #f1c40f; }
+    .red { background: #e74c3c; }
+
+    .logout-btn {
+      background: #ff4d4d;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .logout-btn:hover {
+      background: #d63031;
+    }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <h2>Doctor Dashboard</h2>
+    <button class="logout-btn" id="logoutBtn">Logout</button>
+  </div>
+
+  <div class="container">
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Search patients by name..." />
+      <button id="searchBtn">Search</button>
+    </div>
+
+    <h3>Patients Under Your Care</h3>
+    <div id="patientList" class="patient-list">
+      <p>Loading patients...</p>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem("doctorToken");
+    if (!token) {
+      alert("Unauthorized. Please login.");
+      window.location.href = "doctor_login.html";
+    }
+
+    const patientList = document.getElementById("patientList");
+    const searchInput = document.getElementById("searchInput");
+    const searchBtn = document.getElementById("searchBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    logoutBtn.addEventListener("click", () => {
+      localStorage.removeItem("doctorToken");
+      window.location.href = "doctor_login.html";
+    });
+
+    async function fetchPatients(search = "") {
+      patientList.innerHTML = "<p>Loading patients...</p>";
+      try {
+        const res = await fetch(`http://localhost:5000/api/doctor/patients${search ? "?q=" + search : ""}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error("Failed to fetch patients");
+
+        const patients = await res.json();
+        renderPatientCards(patients);
+      } catch (err) {
+        console.error(err);
+        patientList.innerHTML = `<p style="color:red">${err.message}</p>`;
+      }
+    }
+
+    async function renderPatientCards(patients) {
+      patientList.innerHTML = "";
+      for (const p of patients) {
+        const reading = p.latestReading; // <- use the backend latestReading field
+
+        let statusClass = "green";
+        let statusText = "Normal";
+        if (reading?.systolic > 140 || reading?.diastolic > 90) {
+          statusClass = "red";
+          statusText = "High BP";
+        } else if (reading?.systolic > 120) {
+          statusClass = "yellow";
+          statusText = "Elevated";
+        }
+
+        const card = document.createElement("div");
+        card.className = "patient-card";
+        card.onclick = () => openPatientDashboard(p.id);
+        card.innerHTML = `
+          <div class="patient-name">${p.full_name}</div>
+          <div class="bp-info">Latest BP: ${reading ? `${reading.systolic}/${reading.diastolic}` : "No data"}</div>
+          <div class="bp-info">Last Update: ${reading?.createdAt ? new Date(reading.createdAt).toLocaleString() : "N/A"}</div>
+          <div class="status ${statusClass}">${statusText}</div>
+        `;
+        patientList.appendChild(card);
+      }
+    }
+
+    function filterPatients() {
+      const input = searchInput.value.toLowerCase();
+      const cards = document.querySelectorAll(".patient-card");
+      cards.forEach(card => {
+        const name = card.querySelector(".patient-name").textContent.toLowerCase();
+        card.style.display = name.includes(input) ? "block" : "none";
+      });
+    }
+
+    function openPatientDashboard(id) {
+      localStorage.setItem("selectedPatientId", id);
+      window.location.href = "patient_monitor.html";
+    }
+
+    searchBtn.addEventListener("click", () => fetchPatients(searchInput.value.trim()));
+    searchInput.addEventListener("keyup", filterPatients);
+
+    fetchPatients();
+  </script>
+</body>
+</html>

@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Patient Dashboard — Hypertension (Personalized)</title>
+<style>
+:root{
+  --bg:#f7f7fb; --card:#fff; --muted:#6b7280; --accent:#4f46e5;
+  --danger:#dc2626; --warn:#d97706; --success:#16a34a; --radius:12px;
+  font-family: "Segoe UI", Roboto, system-ui, sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:#111}
+header{background:var(--accent);color:#fff;padding:22px;text-align:center;font-size:1.4rem}
+main{max-width:960px;margin:24px auto;padding:0 18px}
+.tabs{display:flex;gap:8px;margin-bottom:18px}
+.tab-btn{flex:1;padding:10px;border-radius:8px;border:none;background:#ddd;cursor:pointer;font-weight:700}
+.tab-btn.active{background:var(--accent);color:white}
+.tab-content{display:none;background:var(--card);padding:18px;border-radius:var(--radius);box-shadow:0 6px 18px rgba(0,0,0,0.06)}
+.tab-content.active{display:block}
+label{display:block;margin-top:10px;font-weight:600}
+input,select{width:100%;padding:10px;margin-top:6px;border:1px solid #ccc;border-radius:8px;font-size:1rem}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+button{padding:10px 12px;border-radius:10px;border:none;cursor:pointer;color:#fff}
+.btn-primary{background:var(--accent)}.btn-secondary{background:#607d8b}.btn-danger{background:var(--danger)}.btn-ghost{background:#9aa4b2}
+#predictionBox{padding:12px;border-radius:10px;margin-top:12px;background:#f5f7ff;border:1px solid #e6e9ff;text-align:center;font-weight:700}
+#riskChart{height:18px;border-radius:10px;margin-top:8px;background:#eee}
+.notes{padding:12px;border-radius:10px;background:linear-gradient(180deg,#fff,#f6f7fb);border:1px solid #eee;color:#111}
+.alert{padding:10px;border-radius:8px;margin-bottom:8px}
+.alert-high{background:#fff1f2;border-left:6px solid var(--danger)}
+.alert-med{background:#fffbeb;border-left:6px solid var(--warn)}
+.alert-low{background:#ecfdf5;border-left:6px solid var(--success)}
+.suggestion{margin-top:8px;font-size:0.95rem;color:var(--muted)}
+.small{font-size:0.9rem;color:var(--muted)}
+.history-table{width:100%;border-collapse:collapse;margin-top:12px}
+.history-table th,.history-table td{padding:8px;border:1px solid #e6e6e6;text-align:center}
+.controls-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#f0f0f0;font-weight:700}
+@media(max-width:640px){.tabs{flex-direction:column}.actions{flex-direction:column}button{width:100%}}
+/* ================= AI CHATBOT WIDGET ================= */
+#chatbotBtn {
+  position: fixed; bottom: 20px; right: 20px;
+  background: var(--accent); color: #fff; border:none;
+  border-radius: 50%; width: 60px; height: 60px;
+  font-size: 28px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+}
+#chatbotWindow {
+  position: fixed; bottom: 90px; right: 20px;
+  width: 320px; max-height: 400px;
+  background: var(--card); border-radius: 12px; box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+  display: none; flex-direction: column; overflow: hidden;
+  z-index: 1000; font-family: "Segoe UI", Roboto, sans-serif;
+}
+#chatbotHeader {
+  background: var(--accent); color: #fff; padding: 12px;
+  font-weight: 700; text-align: center;
+}
+#chatbotMessages {
+  flex: 1; padding: 10px; overflow-y: auto; background:#f5f5f5;
+  display: flex; flex-direction: column; gap:6px;
+}
+.chat-msg { padding:6px 10px; border-radius:8px; max-width:80%; word-wrap: break-word; }
+.chat-user { background: var(--accent); color:#fff; align-self:flex-end; }
+.chat-bot { background: #eee; color:#111; align-self:flex-start; }
+#chatbotInputContainer { display:flex; border-top:1px solid #ccc; }
+#chatbotInput { flex:1; padding:8px; border:none; outline:none; font-size:1rem; }
+#chatbotSend { padding:0 12px; border:none; background:var(--accent); color:#fff; cursor:pointer; }
+</style>
+</head>
+<body>
+<header>🩺 Hypertension Dashboard — Personalized Alerts</header>
+<main>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('profileTab')">Profile</button>
+    <button class="tab-btn" onclick="showTab('trendsTab')">Trends</button>
+    <button class="tab-btn" onclick="showTab('notesTab')">Notes & Alerts</button>
+    <button class="tab-btn" onclick="showTab('historyTab')">History</button>
+  </div>
+
+  <!-- PROFILE -->
+  <div id="profileTab" class="tab-content active">
+    <h3>Profile & Reading</h3>
+    <label>Full name</label><input id="fullName" type="text">
+    <label>Email</label><input id="email" type="email">
+    <div style="display:flex;gap:8px">
+      <div style="flex:1"><label>Age</label><input id="age" type="number" min="0"></div>
+      <div style="flex:1"><label>Gender</label>
+        <select id="gender"><option value="">Select</option><option>Male</option><option>Female</option></select>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <div style="flex:1"><label>Weight (kg)</label><input id="weight" type="number"></div>
+      <div style="flex:1"><label>Height (cm)</label><input id="height" type="number"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <div style="flex:1"><label>SBP (mmHg)</label><input id="sbp" type="number"></div>
+      <div style="flex:1"><label>DBP (mmHg)</label><input id="dbp" type="number"></div>
+      <div style="flex:1"><label>Heart Rate</label><input id="heartRate" type="number"></div>
+    </div>
+    <label>Smoking</label>
+    <select id="smoking"><option value="false">No</option><option value="true">Yes</option></select>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <div style="flex:1"><label>Diabetes</label><select id="diabetes"><option value="false">No</option><option value="true">Yes</option></select></div>
+      <div style="flex:1"><label>Cholesterol (mg/dL)</label><input id="cholesterol" type="number"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <div style="flex:1"><label>Medication Adherence (%)</label><input id="medicationAdherence" type="number" min="0" max="100" value="90"></div>
+      <div style="flex:1"><label>Activity Level (1-5)</label><input id="activityLevel" type="number" min="1" max="5" value="3"></div>
+      <div style="flex:1"><label>Sodium Intake (mg/day)</label><input id="sodiumIntake" type="number" value="2500"></div>
+    </div>
+    <div class="actions">
+      <button class="btn-primary" onclick="saveProfile()">Save Profile</button>
+      <button class="btn-secondary" onclick="addReading()">Add Reading</button>
+      <button class="btn-ghost" onclick="clearAllData()">Clear Local Data</button>
+      <button class="btn-danger" onclick="logout()">Logout</button>
+    </div>
+
+    <div id="predictionBox">🩺 Prediction: --</div>
+    <div id="riskChart"></div>
+    <div style="margin-top:8px">
+      <span class="badge" id="riskBadge">Risk: --</span>
+      <span style="margin-left:8px" id="lastSeen" class="small"></span>
+    </div>
+    <div class="suggestion" id="aiSuggestion"></div>
+  </div>
+
+  <!-- TRENDS -->
+  <div id="trendsTab" class="tab-content">
+    <h3>Trends (SBP / DBP / HR)</h3>
+    <div id="trendSummary" class="small"></div>
+    <div id="sparklineContainer" style="height:140px;margin-top:12px"></div>
+    <div style="margin-top:8px" class="small">Tip: Add readings to track personalized patterns — we analyze the last 10 readings.</div>
+  </div>
+
+  <!-- NOTES / ALERTS -->
+  <div id="notesTab" class="tab-content">
+    <h3>Personalized Alerts</h3>
+    <div id="notesBox" class="notes">
+      <div id="alertsList">No alerts yet — system will show personalized alerts here.</div>
+      <div id="suggestions" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div id="historyTab" class="tab-content">
+    <h3>Reading History</h3>
+    <div class="controls-row">
+      <button class="btn-primary" onclick="exportJSON()">Export JSON</button>
+      <button class="btn-secondary" onclick="importSample()">Load Sample Data</button>
+    </div>
+    <table class="history-table">
+      <thead><tr><th>#</th><th>Time</th><th>SBP</th><th>DBP</th><th>HR</th><th>Notes</th></tr></thead>
+      <tbody id="historyBody"></tbody>
+    </table>
+  </div>
+</main>
+
+<!-- ================= AI CHATBOT WIDGET ================= -->
+<button id="chatbotBtn">💬</button>
+<div id="chatbotWindow">
+  <div id="chatbotHeader">Hypertension Assistant</div>
+  <div id="chatbotMessages"></div>
+  <div id="chatbotInputContainer">
+    <input type="text" id="chatbotInput" placeholder="Ask me about hypertension..." />
+    <button id="chatbotSend">Send</button>
+  </div>
+</div>
+
+<script>
+// ================= Core JS =================
+const STORAGE_KEY = "patient_dashboard_data_v1";
+let store = { profile:{}, readings:[] };
+function nowISO(){ return new Date().toISOString(); }
+function loadStore(){ try{ const raw=localStorage.getItem(STORAGE_KEY); store=raw?JSON.parse(raw):{profile:{},readings:[]}; } catch(e){ store={profile:{},readings:[]}; } }
+function saveStore(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(store)); }
+function clampedNumber(v,fallback=0){ const n=parseFloat(v); return Number.isFinite(n)?n:fallback; }
+
+// ---------- Tabs ----------
+function showTab(id){
+  document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+  document.querySelectorAll(".tab-content").forEach(c=>c.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  document.querySelector(`.tab-btn[onclick="showTab('${id}')"]`)?.classList.add("active");
+}
+
+// ---------- Profile / Reading ----------
+function saveProfile(){
+  const p=document.getElementById.bind(document);
+  store.profile.fullName=p("fullName").value||"";
+  store.profile.email=p("email").value||"";
+  store.profile.age=clampedNumber(p("age").value,0);
+  store.profile.gender=p("gender").value||"";
+  store.profile.weight=clampedNumber(p("weight").value,0);
+  store.profile.height = clampedNumber(p("height").value, 1);
+  store.profile.smoking=p("smoking").value==="true";
+  store.profile.diabetes=p("diabetes").value==="true";
+  store.profile.cholesterol=clampedNumber(p("cholesterol").value,0);
+  store.profile.medication_adherence=clampedNumber(p("medicationAdherence").value,90);
+  store.profile.activity_level=clampedNumber(p("activityLevel").value,3);
+  store.profile.sodium_intake=clampedNumber(p("sodiumIntake").value,2500);
+  saveStore();
+  fetchRiskPrediction();
+  renderAll();
+}
+
+function addReading(){
+  const p=document.getElementById.bind(document);
+  const sbp=clampedNumber(p("sbp").value,null);
+  const dbp=clampedNumber(p("dbp").value,null);
+  const hr=clampedNumber(p("heartRate").value,null);
+  if(!sbp || !dbp || !hr){ alert("Enter SBP, DBP & HR"); return; }
+  store.readings.unshift({ ts:nowISO(), sbp, dbp, hr, note:"manual" });
+  if(store.readings.length>200) store.readings.length=200;
+  saveStore();
+  fetchRiskPrediction();
+  renderAll();
+}
+
+// ---------- Clear / Export / Import ----------
+function clearAllData(){ if(confirm("Clear all data?")){ localStorage.removeItem(STORAGE_KEY); store={profile:{},readings:[]}; renderAll(); } }
+function exportJSON(){ const dataStr=JSON.stringify(store,null,2); const blob=new Blob([dataStr],{type:"application/json"}); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url;a.download="patient_dashboard.json"; document.body.appendChild(a);a.click();a.remove(); URL.revokeObjectURL(url);}
+function importSample(){
+  store.profile={ fullName:"Edgar Wekesa", email:"wekesaedgar3@gmail.com", age:45, gender:"Male", weight:78, height:172, medication_adherence:78, activity_level:2 };
+  const now=Date.now();
+  store.readings=[ {ts:new Date(now-6*86400000).toISOString(), sbp:142, dbp:92, hr:86, note:"sample"},
+                   {ts:new Date(now-5*86400000).toISOString(), sbp:145, dbp:94, hr:88, note:"sample"},
+                   {ts:new Date(now-4*86400000).toISOString(), sbp:148, dbp:95, hr:90, note:"sample"},
+                   {ts:new Date(now-3*86400000).toISOString(), sbp:150, dbp:98, hr:92, note:"sample"},
+                   {ts:new Date(now-2*86400000).toISOString(), sbp:152, dbp:100, hr:96, note:"sample"},
+                   {ts:new Date(now-1*86400000).toISOString(), sbp:155, dbp:102, hr:100, note:"sample"} ];
+  saveStore();
+  renderAll();
+}
+
+// ---------- Alerts / Patterns ----------
+function lastN(n){ return store.readings.slice(0,n); }
+function mean(arr){ return arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:0; }
+function stddev(arr){ if(!arr.length) return 0; const m=mean(arr); return Math.sqrt(arr.reduce((s,x)=>s+(x-m)**2,0)/arr.length); }
+
+function detectPatterns(){
+  const alerts=[]; const recent5=lastN(5); const recent10=lastN(10);
+  const sbps=recent10.map(r=>r.sbp).filter(v=>v!=null);
+  const dbps=recent10.map(r=>r.dbp).filter(v=>v!=null);
+  const hrs=recent10.map(r=>r.hr).filter(v=>v!=null);
+
+  const persistHigh=recent5.filter(r=>r.sbp>=140||r.dbp>=90).length;
+  if(persistHigh>=3) alerts.push({level:"high",title:"Persistent high blood pressure",message:`${persistHigh} of last ${Math.min(5,recent5.length)} readings hypertensive`, suggestion:"Contact clinician. Review meds."});
+
+  const last4=lastN(4).map(r=>r.sbp);
+  let consec=0,maxConsec=0; for(let i=1;i<last4.length;i++){ if(last4[i]>last4[i-1]) consec++; else consec=0; if(consec>maxConsec) maxConsec=consec; }
+  if(maxConsec>=2) alerts.push({level:"medium",title:"Rising SBP trend",message:"Recent systolic readings rising.",suggestion:"Track for 7 days, avoid caffeine."});
+
+  const sbpStd=stddev(sbps);
+  if(sbpStd>12) alerts.push({level:"medium",title:"High BP variability",message:`SBP std dev ≈ ${sbpStd.toFixed(1)}`,suggestion:"Measure consistently, discuss with clinician."});
+
+  if(store.readings[0]?.hr>100) alerts.push({level:"medium",title:"Tachycardia",message:`Latest HR ${store.readings[0].hr}`,suggestion:"Check symptoms, hydration, meds."});
+
+  const adherence=store.profile.medication_adherence??100;
+  if(adherence<70) alerts.push({level:"medium",title:"Low medication adherence",message:`Adherence ${adherence}%`,suggestion:"Use reminders or discuss dosing."});
+
+  if((store.profile.sodium_intake??0)>3500) alerts.push({level:"low",title:"High sodium intake",message:`Sodium ${store.profile.sodium_intake}`,suggestion:"Reduce processed foods."});
+  if((store.profile.activity_level??3)<=1) alerts.push({level:"low",title:"Low activity level",message:"Activity level is low",suggestion:"Add short daily walks."});
+
+  alerts.sort((a,b)=>({high:0,medium:1,low:2}[a.level]-{high:0,medium:1,low:2}[b.level]));
+  return alerts;
+}
+
+function renderAlerts(){ const alerts=detectPatterns(); const container=document.getElementById("alertsList"); container.innerHTML=alerts.length?alerts.map(a=>`<div class="alert alert-${a.level}"><strong>${a.title}:</strong> ${a.message}<div class="suggestion">${a.suggestion}</div></div>`).join(""):"No alerts yet — readings normal."; }
+
+// ---------- Render ----------
+function renderHistory(){ const tbody=document.getElementById("historyBody"); tbody.innerHTML=""; store.readings.forEach((r,i)=>{ const t=new Date(r.ts).toLocaleString(); tbody.innerHTML+=`<tr><td>${i+1}</td><td>${t}</td><td>${r.sbp}</td><td>${r.dbp}</td><td>${r.hr}</td><td>${r.note||""}</td></tr>`; }); }
+function renderProfile(){ const p=store.profile; const e=document.getElementById.bind(document); e("fullName").value=p.fullName||""; e("email").value=p.email||""; e("age").value=p.age||""; e("gender").value=p.gender||""; e("weight").value=p.weight||""; e("height").value=p.height||""; e("smoking").value=!!p.smoking; e("diabetes").value=!!p.diabetes; e("cholesterol").value=p.cholesterol||""; e("medicationAdherence").value=p.medication_adherence||90; e("activityLevel").value=p.activity_level||3; e("sodiumIntake").value=p.sodium_intake||2500; }
+function renderAll(){ renderProfile(); renderHistory(); renderAlerts(); renderTrendSummary(); renderSparkline(); }
+function renderTrendSummary(){ const r10=lastN(10); if(!r10.length){ document.getElementById("trendSummary").innerText="No readings yet."; return;} const sbps=r10.map(r=>r.sbp),dbps=r10.map(r=>r.dbp),hrs=r10.map(r=>r.hr); document.getElementById("trendSummary").innerText=`Last ${r10.length} readings: Avg SBP: ${mean(sbps).toFixed(1)}, DBP: ${mean(dbps).toFixed(1)}, HR: ${mean(hrs).toFixed(0)}`; }
+
+// ---------- Sparkline ----------
+function renderSparkline(){
+  const r10=lastN(10);
+  if(!r10.length){ document.getElementById("sparklineContainer").innerHTML="No data"; return; }
+
+  const valuesSBP = r10.map(r=>r.sbp);
+  const valuesDBP = r10.map(r=>r.dbp);
+  const valuesHR = r10.map(r=>r.hr);
+
+  const w=300, h=100, pad=20;
+  const maxVal=Math.max(...valuesSBP, ...valuesDBP, ...valuesHR);
+  const minVal=Math.min(...valuesSBP, ...valuesDBP, ...valuesHR);
+
+  function linePath(vals){
+    return vals.map((v,i)=>`${i*(w/9)},${h - pad - ((v-minVal)/(maxVal-minVal))*(h-2*pad)}`).join(" L ");
+  }
+
+  const points = (vals, color, label) => vals.map((v,i)=>{
+    const x = i*(w/9);
+    const y = h - pad - ((v-minVal)/(maxVal-minVal))*(h-2*pad);
+    return `<circle cx="${x}" cy="${y}" r="3" fill="${color}"><title>${label}: ${v}</title></circle>`;
+  }).join("");
+
+  const svg=`<svg width="${w}" height="${h}">
+    <polyline fill="none" stroke="#4f46e5" stroke-width="2" points="${linePath(valuesSBP)}" />
+    <polyline fill="none" stroke="#dc2626" stroke-width="2" points="${linePath(valuesDBP)}" />
+    <polyline fill="none" stroke="#16a34a" stroke-width="2" points="${linePath(valuesHR)}" />
+    ${points(valuesSBP,"#4f46e5","SBP")}
+    ${points(valuesDBP,"#dc2626","DBP")}
+    ${points(valuesHR,"#16a34a","HR")}
+    <text x="0" y="12" font-size="10" fill="#4f46e5">SBP</text>
+    <text x="40" y="12" font-size="10" fill="#dc2626">DBP</text>
+    <text x="80" y="12" font-size="10" fill="#16a34a">HR</text>
+  </svg>`;
+
+  document.getElementById("sparklineContainer").innerHTML = svg;
+}
+
+// ---------- Toast ----------
+function showToast(msg){ alert(msg); }
+function logout(){ if(confirm("Clear session and local data?")){ clearAllData(); alert("Logged out."); }}
+
+// ---------- AI / Risk Prediction ----------
+async function fetchRiskPrediction(){
+  const profile = store.profile;
+  const latest = store.readings[0] || {};
+  const payload = {
+    sbp: latest.sbp || 0,
+    dbp: latest.dbp || 0,
+    hr: latest.hr || 0,
+    age: profile.age || 0,
+    gender: profile.gender || "Unknown",
+    weight: profile.weight || 0,
+    height: profile.height || 0,
+    smoking: !!profile.smoking,
+    diabetes: !!profile.diabetes,
+    cholesterol: profile.cholesterol || 0,
+    medication_adherence: profile.medication_adherence || 90,
+    activity_level: profile.activity_level || 3,
+    sodium_intake: profile.sodium_intake || 2500
+  };
+
+  let riskScore = null;
+
+  try {
+    const resp = await fetch("http://127.0.0.1:8000/predict", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(payload)
+    });
+    if(resp.ok){
+      const data = await resp.json();
+      riskScore = data.risk;
+    } else {
+      console.warn("AI backend error", resp.status);
+    }
+  } catch(e){
+    console.warn("AI backend unreachable", e);
+  }
+
+  if(riskScore === null){
+    riskScore = 0.1;
+    if(latest.sbp >= 140 || latest.dbp >= 90) riskScore = 50;
+    if(latest.sbp >= 160 || latest.dbp >= 100) riskScore = 80;
+  }
+
+  let riskLabel = "Low", color = "#16a34a", suggestion="Maintain lifestyle and follow prescribed meds.";
+  if(riskScore >= 85){ riskLabel="Very High"; color="#b91c1c"; suggestion="Very high risk: Contact clinician immediately.";}
+  else if(riskScore >= 70){ riskLabel="High"; color="#dc2626"; suggestion="High risk: Contact your clinician promptly.";}
+  else if(riskScore >= 40){ riskLabel="Moderate"; color="#f59e0b"; suggestion="Moderate risk: Monitor closely, follow lifestyle plan.";}
+  else{ riskLabel="Low"; color="#16a34a"; suggestion="Low risk: Maintain healthy lifestyle."; }
+
+  document.getElementById("predictionBox").innerText =
+    `🩺 Predicted Risk Score: ${riskScore.toFixed(0)}%`;
+
+  const badge = document.getElementById("riskBadge");
+  badge.innerText = `Risk: ${riskLabel}`;
+  badge.style.backgroundColor = color;
+
+  document.getElementById("lastSeen").innerText =
+    `Last reading: ${latest.ts ? new Date(latest.ts).toLocaleString() : "--"}`;
+
+  document.getElementById("aiSuggestion").innerText = suggestion;
+}
+
+// ---------- Init ----------
+loadStore();
+renderAll();
+fetchRiskPrediction();
+
+// ================== Chatbot ==================
+const chatbotBtn = document.getElementById("chatbotBtn");
+const chatbotWindow = document.getElementById("chatbotWindow");
+chatbotBtn.addEventListener("click", ()=> {
+  chatbotWindow.style.display = chatbotWindow.style.display === "flex" ? "none" : "flex";
+});
+const messagesDiv = document.getElementById("chatbotMessages");
+const input = document.getElementById("chatbotInput");
+const sendBtn = document.getElementById("chatbotSend");
+
+async function sendMessage(){
+  const msg = input.value.trim();
+  if(!msg) return;
+  appendMessage(msg, "user");
+  input.value = "";
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+  const profileSummary = `
+Patient info:
+Name: ${store.profile.fullName||"N/A"}, Age: ${store.profile.age||"N/A"}, Gender: ${store.profile.gender||"N/A"},
+Weight: ${store.profile.weight||"N/A"}kg, Height: ${store.profile.height||"N/A"}cm,
+SBP: ${store.readings[0]?.sbp||"N/A"}, DBP: ${store.readings[0]?.dbp||"N/A"}, HR: ${store.readings[0]?.hr||"N/A"},
+Smoking: ${store.profile.smoking?"Yes":"No"}, Diabetes: ${store.profile.diabetes?"Yes":"No"},
+Cholesterol: ${store.profile.cholesterol||"N/A"}, Medication Adherence: ${store.profile.medication_adherence||"N/A"}%,
+Activity Level: ${store.profile.activity_level||"N/A"}, Sodium Intake: ${store.profile.sodium_intake||"N/A"}mg/day
+`;
+
+  try {
+    const resp = await fetch("http://127.0.0.1:8000/api/ai/chat", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({message: profileSummary + "\nUser question: " + msg})
+    });
+    if(resp.ok){
+      const data = await resp.json();
+      appendMessage(data.reply, "bot");
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    } else {
+      appendMessage("Error: AI server not responding.", "bot");
+    }
+  } catch(e){
+    appendMessage("Error: Unable to reach AI server.", "bot");
+  }
+}
+
+function appendMessage(text, sender){
+  const div = document.createElement("div");
+  div.className = "chat-msg "+(sender==="user"?"chat-user":"chat-bot");
+  div.innerText = text;
+  messagesDiv.appendChild(div);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+sendBtn.addEventListener("click", sendMessage);
+input.addEventListener("keydown", e=>{ if(e.key==="Enter") sendMessage(); });
+</script>
+</body>
+</html>

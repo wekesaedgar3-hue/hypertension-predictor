@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Hypertension Predictor</title>
+  <style>
+    /* ===== Global Styles ===== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f7fa;
+      color: #333;
+      line-height: 1.6;
+    }
+    header {
+      background: #2e7d32;
+      color: #fff;
+      padding: 1rem;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    .container {
+      display: grid;
+      grid-template-columns: 250px 1fr;
+      gap: 20px;
+      padding: 20px;
+    }
+    /* ===== Sidebar ===== */
+    .sidebar {
+      background: #fff;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      height: fit-content;
+    }
+    .sidebar h2 {
+      font-size: 1.2rem;
+      margin-bottom: 12px;
+      color: #2e7d32;
+    }
+    .sidebar ul {
+      list-style: none;
+    }
+    .sidebar ul li {
+      margin: 10px 0;
+      padding: 10px;
+      background: #e8f5e9;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .sidebar ul li:hover {
+      background: #c8e6c9;
+    }
+    /* ===== Dashboard ===== */
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: #fff;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .card h3 {
+      margin-bottom: 10px;
+      color: #2e7d32;
+      font-size: 1.1rem;
+    }
+    input, select, textarea, button {
+      width: 100%;
+      padding: 8px;
+      margin: 8px 0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 0.95rem;
+    }
+    button {
+      background: #2e7d32;
+      color: #fff;
+      font-weight: bold;
+      cursor: pointer;
+      border: none;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: #1b5e20;
+    }
+    .chart {
+      background: #f1f8e9;
+      border-radius: 8px;
+      height: 150px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      color: #555;
+      margin-bottom: 10px;
+    }
+    footer {
+      text-align: center;
+      padding: 1rem;
+      margin-top: 20px;
+      background: #eee;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    Admin Dashboard - Hypertension Predictor
+  </header>
+
+  <!-- Container -->
+  <div class="container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <h2>Navigation</h2>
+      <ul>
+        <li>User Management</li>
+        <li>System Monitoring</li>
+        <li>Analytics & Reports</li>
+        <li>Model Management</li>
+        <li>Security & Compliance</li>
+        <li>Content Management</li>
+      </ul>
+    </aside>
+
+    <!-- Main Dashboard -->
+    <main class="dashboard">
+      <!-- User Management -->
+      <div class="card">
+        <h3>User Management</h3>
+        <input type="text" placeholder="Enter user name">
+        <select>
+          <option>Select Role</option>
+          <option>Doctor</option>
+          <option>Patient</option>
+          <option>Researcher</option>
+        </select>
+        <button>Register User</button>
+        <p>Approve or assign roles to users.</p>
+      </div>
+
+      <!-- System Monitoring -->
+      <div class="card">
+        <h3>System Monitoring</h3>
+        <div class="chart">Server Status: Online</div>
+        <p>Check logs and monitor database health.</p>
+        <button>View Logs</button>
+      </div>
+
+      <!-- Analytics & Reports -->
+      <div class="card">
+        <h3>Analytics & Reports</h3>
+        <div class="chart">34% at risk in community</div>
+        <p>Generate usage statistics and insights.</p>
+        <button>Generate Report</button>
+      </div>
+
+      <!-- Model Management -->
+      <div class="card">
+        <h3>Model Management</h3>
+        <p>Retrain models and upload datasets.</p>
+        <button>Retrain Model</button>
+        <input type="file">
+        <button>Upload Dataset</button>
+      </div>
+
+      <!-- Security & Compliance -->
+      <div class="card">
+        <h3>Security & Compliance</h3>
+        <p>Run compliance checks and backup data.</p>
+        <button>Run Security Check</button>
+        <button>Backup System</button>
+      </div>
+
+      <!-- Content Management -->
+      <div class="card">
+        <h3>Content Management</h3>
+        <p>Upload educational resources & manage FAQs.</p>
+        <input type="file">
+        <button>Upload Content</button>
+        <textarea placeholder="Enter new FAQ..."></textarea>
+        <button>Add FAQ</button>
+      </div>
+    </main>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    &copy; 2025 Hypertension Predictor System
+  </footer>
+</body>
+</html>
